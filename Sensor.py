@@ -14,19 +14,36 @@ snow_to_water = 0.1
 
 x_res = 402
 y_res = 192
-things = 100 #int(sys.argv[1])
+
+things = {}
+
 max_distance = 100.0
 
 background_colour = (0,0,0)
 (width, height) = (x_res, int(y_res*2))
 pygame.init()
 clock = pygame.time.Clock()
+
 # How many snowflakes in cubic meter
 snow_a = 1000
-# Diameter of snowflake in m
+# Diameter of snowflake in m, usually 0.001-0.08
 snow_s = 0.01
 # probability of colliding with a snowflake per meter
 snow_p = math.pi*(snow_s/2)**2*snow_a
+
+car_a = 10 
+car_r = (0.1,0.3)
+car_s = ((int(x_res/16),int(x_res/4)),(int(y_res/4),y_res))
+car = {'car':{'a':car_a, 'r':car_r,'s':car_s}}
+
+human_a = 15
+human_r = (0.04,0.1)
+human_s = ((int(x_res/64),int(x_res/16)),(int(y_res/4),y_res))
+human = {'human':{'a':human_a, 'r':human_r,'s':human_s}}
+
+things.update(car)
+things.update(human)
+
 
 f = open('output.txt','w')
 """
@@ -66,8 +83,6 @@ def add_thing(x,y,width,height,distance,reflectivity):
         for j in range(height):
             try:
                 point = map[x+i][y+j]
-                s = str(str(distance< point['d']) + ' ' + str(distance) + ' ' + str(point['d']) + '\n')
-                f.write(s)
                 if point['d'] > distance:
                     point['d'] = distance
                     point['r'] = reflectivity
@@ -97,9 +112,11 @@ def plot(initial=False):
             multiplier = 1-1.0*mean_d/max_distance
             screen.fill((int(multiplier*255), int(multiplier*255), 0),rect=((int(i*3), int(j*3),3,3)))
 
-print things
-for i in range(things):
-    add_thing(np.random.randint(0,x_res),np.random.randint(0,y_res),np.random.randint(1,100),np.random.randint(1,20),np.random.randint(1,100),np.random.random())
+for i in things:
+    i = things[i]
+    for j in range(i['a']):
+        print i
+        add_thing(np.random.randint(0,x_res),np.random.randint(0,y_res),np.random.randint(*i['s'][0]),np.random.randint(*i['s'][1]),np.random.randint(1,max_distance),np.random.uniform(*i['r']))
 
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('View')
@@ -121,11 +138,13 @@ while running:
                 if (snow_a>100):
                     snow_a-=100
             if event.key == pygame.K_RIGHT:
-                pass
+                snow_s +=0.001
             if event.key == pygame.K_LEFT:
-                pass
+                if(snow_s>0.001):
+                    snow_s-=0.001
             snow_p = math.pi*(snow_s/2)**2*snow_a
-            print snow_a,snow_p
+            snow_p = math.pi*(snow_s/2)**2*snow_a
+            print snow_a,snow_p, snow_s
             plot()
     pygame.display.update()
     clock.tick(60)
