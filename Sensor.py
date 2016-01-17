@@ -14,7 +14,7 @@ snow_to_water = 0.1
 
 x_res = 402
 y_res = 192
-things = 10 #int(sys.argv[1])
+things = 100 #int(sys.argv[1])
 max_distance = 100.0
 
 background_colour = (0,0,0)
@@ -28,10 +28,11 @@ snow_s = 0.01
 # probability of colliding with a snowflake per meter
 snow_p = math.pi*(snow_s/2)**2*snow_a
 
+f = open('output.txt','w')
 """
 Create map that includes the "real image"
 """
-map = [[{'r':0,'d':0} for j in xrange(y_res)] for i in xrange(x_res)]
+map = [[{'r':0,'d':int(max_distance)} for j in xrange(y_res)] for i in xrange(x_res)]
 
 print 'map:' , len(map) , '*' , len(map[0])
 
@@ -50,7 +51,7 @@ def pulse_s(x, y):
     else:
         x = point['d']
     for i in range(x):
-        if (happens(snow_p)):
+        if (random.random()<snow_p):
             return (1,i)
     # calculate strength of return signal (0-1)
     if (point['d']!=0 and point['r']!=0):
@@ -64,60 +65,55 @@ def add_thing(x,y,width,height,distance,reflectivity):
     for i in range(width):
         for j in range(height):
             try:
-                if map[x+i][y+j]['d'] < distance:
-                    map[x+i][y+j]['d'] = distance
-                    map[x+i][y+j]['r'] = reflectivity
+                point = map[x+i][y+j]
+                s = str(str(distance< point['d']) + ' ' + str(distance) + ' ' + str(point['d']) + '\n')
+                f.write(s)
+                if point['d'] > distance:
+                    point['d'] = distance
+                    point['r'] = reflectivity
             except:
                 #print "Out of range"
                 pass
 """
 Draws real image under, where darker = further. Top one is what lidar sees, darker = less likely true
 """
-def plot():
-    screen.fill(background_colour)
-    pygame.draw.line(screen,(100,100,100),(0,y_res),(x_res,y_res))
-    for i in xrange(x_res):
-        for j in xrange(y_res):
-            if (map[i][j]['d']!= 0):
-                screen.set_at((int(i), int(j+y_res+1)),(int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)) ))
-                #pygame.display.update()
+def plot(initial=False):
+    if initial:
+        screen.fill(background_colour)
+        pygame.draw.line(screen,(100,100,100),(0,y_res),(x_res,y_res))
+        for i in xrange(x_res):
+            for j in xrange(y_res):
+                if (map[i][j]['d']!= 0):
+                    screen.set_at((int(i), int(j+y_res+1)),(int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)) ))
                 
     for i in range(int(x_res/3)):
-        #print i
         for j in range(int(y_res/3)):
-            #p = []
             d = []
             for k in range(3):
                 for l in range(3):
-                    r = pulse_s(i*3+k,j*3+l)
-                    #p.append(r[0])
-                    d.append(r[1])
-            #mean_p = np.mean(p)
+                    #r = pulse_s(i*3+k,j*3+l)
+                    d.append(pulse_s(i*3+k,j*3+l)[1])
             mean_d = np.mean(d)
             multiplier = 1-1.0*mean_d/max_distance
             screen.fill((int(multiplier*255), int(multiplier*255), 0),rect=((int(i*3), int(j*3),3,3)))
-            #screen.set_at((int(i), int(j)),(255*mean, 255*mean, 255*mean ))
-            #pygame.display.update()
-
-def happens(prob):
-    return random.random()<prob
 
 print things
 for i in range(things):
-    add_thing(np.random.randint(0,x_res),np.random.randint(0,y_res),np.random.randint(1,100),np.random.randint(1,20),np.random.randint(0,100),np.random.random())
+    add_thing(np.random.randint(0,x_res),np.random.randint(0,y_res),np.random.randint(1,100),np.random.randint(1,20),np.random.randint(1,100),np.random.random())
 
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('View')
 screen.fill(background_colour)
 
-plot()
-
+plot(initial=True)
+f.close()
 running = True
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            pygame.display.quit()
             pygame.quit()
-            running = False
+            sys.exit()
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 snow_a+=100
@@ -133,5 +129,7 @@ while running:
             plot()
     pygame.display.update()
     clock.tick(60)
-    
+pygame.display.quit()
+pygame.quit()
+sys.exit()
     
