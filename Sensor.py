@@ -14,13 +14,14 @@ snow_to_water = 0.1
 
 x_res = 402
 y_res = 192
-
+gap = 5
+x_unit = int(x_res/4)
 things = {}
 
 max_distance = 100.0
 
 background_colour = (0,0,0)
-(width, height) = (x_res, int(y_res*2))
+(width, height) = ((x_res+gap*3), int(y_res*2+gap))
 pygame.init()
 clock = pygame.time.Clock()
 
@@ -46,22 +47,36 @@ things.update(human)
 
 
 f = open('output.txt','w')
+
 """
-Create map that includes the "real image"
+Create map that is the "real image"
 """
 map = [[{'r':0,'d':int(max_distance)} for j in xrange(y_res)] for i in xrange(x_res)]
-
 print 'map:' , len(map) , '*' , len(map[0])
 
 """
-Calculate correct H using some formula
+Contains locations and ranges of all windows, 
+format {'x':int, 'y':int, 'width':int, 'height':int, 'sensors':[boolean(lidar), boolean(radar), boolean(infrared)], 'image':boolean}
 """
-def H(R):
-    return R
+windows = []
+
+windows.append({'x':0, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False})
+windows.append({'x':x_unit, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False})
+windows.append({'x':(x_unit)*2, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False})
+windows.append({'x':(x_unit)*3, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False})
+"""
+windows.append({'x':0, 'y':y_res+gap, 'width':x_unit, 'height':y_res, 'sensors':[False, False, False], 'image':True})
+windows.append({'x':x_unit+gap, 'y':y_res+gap, 'width':x_unit, 'height':y_res, 'sensors':[False, False, False], 'image':True})
+windows.append({'x':(x_unit+gap)*2, 'y':y_res+gap, 'width':x_unit, 'height':y_res, 'sensors':[False, False, False], 'image':True})
+windows.append({'x':(x_unit+gap)*3, 'y':y_res+gap, 'width':x_unit, 'height':y_res, 'sensors':[False, False, False], 'image':True})
+"""
+print windows
+
 """
 Will be used to calculate the strength of return signal
 """
 def pulse_s(x, y):
+    #print x,y
     point = map[x][y]
     if point['d'] == 0:
         x = int(max_distance)
@@ -75,6 +90,7 @@ def pulse_s(x, y):
         return (1,point['d'])
     else:
         return (0, max_distance)
+
 """
 Adds an thing to specific place
 """
@@ -92,37 +108,52 @@ def add_thing(x,y,width,height,distance,reflectivity):
 """
 Draws real image under, where darker = further. Top one is what lidar sees, darker = less likely true
 """
-def plot(initial=False):
-    if initial:
-        screen.fill(background_colour)
-        pygame.draw.line(screen,(100,100,100),(0,y_res),(x_res,y_res))
-        for i in xrange(x_res):
-            for j in xrange(y_res):
-                if (map[i][j]['d']!= 0):
-                    screen.set_at((int(i), int(j+y_res+1)),(int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)) ))
-                
-    for i in range(int(x_res/3)):
-        for j in range(int(y_res/3)):
+def plot(index):
+    window = windows[index]
+    for i in range(int(window['width']/3)):
+        for j in range(int(window['height']/3)):
             d = []
             for k in range(3):
                 for l in range(3):
                     #r = pulse_s(i*3+k,j*3+l)
-                    d.append(pulse_s(i*3+k,j*3+l)[1])
+                    d.append(pulse_s(i*3+k++window['x'],j*3+l++window['y'])[1])
             mean_d = np.mean(d)
             multiplier = 1-1.0*mean_d/max_distance
-            screen.fill((int(multiplier*255), int(multiplier*255), 0),rect=((int(i*3), int(j*3),3,3)))
+            screen.fill((int(multiplier*255), int(multiplier*255), 0),rect=((int(i*3+window['x']), int(j*3+window['y']),3,3)))
 
-for i in things:
-    i = things[i]
-    for j in range(i['a']):
+"""
+Add elements to map
+"""
+def set_things(amount):
+    for i in amount:
+        i = things[i]
+        for j in range(i['a']):
+            x = np.random.randint(0,x_res)
+            y = np.random.randint(0,y_res)
+            width = np.random.randint(*i['s'][0])
+            height = np.random.randint(*i['s'][1])
+            distance = np.random.randint(1,max_distance)
+            reflectivity = np.random.uniform(*i['r'])
+            add_thing(x, y, width, height ,distance, reflectivity)
+
+def plot_all():
+    for i in xrange(len(windows)):
         print i
-        add_thing(np.random.randint(0,x_res),np.random.randint(0,y_res),np.random.randint(*i['s'][0]),np.random.randint(*i['s'][1]),np.random.randint(1,max_distance),np.random.uniform(*i['r']))
+        plot(i)
+        
 
+set_things(things)
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('View')
 screen.fill(background_colour)
 
-plot(initial=True)
+screen.fill(background_colour)
+pygame.draw.line(screen,(100,100,100),(0,y_res),(x_res,y_res))
+for i in xrange(x_res):
+    for j in xrange(y_res):
+        if (map[i][j]['d']!= 0):
+            screen.set_at((int(i), int(j+y_res+1)),(int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)) ))
+plot_all()
 f.close()
 running = True
 while running:
@@ -145,7 +176,7 @@ while running:
             snow_p = math.pi*(snow_s/2)**2*snow_a
             snow_p = math.pi*(snow_s/2)**2*snow_a
             print snow_a,snow_p, snow_s
-            plot()
+            plot_all()
     pygame.display.update()
     clock.tick(60)
 pygame.display.quit()
