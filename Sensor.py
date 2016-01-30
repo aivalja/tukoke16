@@ -15,15 +15,17 @@ Equation values
 """
 snow_to_water = 0.1
 
-x_res = 402*6
-y_res = 192
+x_res = 402*6/2
+y_res = 192/2
 gap = 5
 x_unit = int(x_res/4)
 x_unit_small = int(x_res/8)
 things = {}
 width_multiplier = 1
-
+lidar_a = 1
+mean = False
 selector = {'left':0,'front':x_unit,'right':2*x_unit,'back':3*x_unit}
+
 
 max_distance = 120.0
 
@@ -33,7 +35,7 @@ pygame.init()
 clock = pygame.time.Clock()
 
 # How many snowflakes in cubic meter
-snow_a = 1000
+snow_a = 10000
 # Diameter of snowflake in m, usually 0.001-0.08
 snow_s = 0.01
 # probability of colliding with a snowflake per meter
@@ -62,18 +64,18 @@ name = {'left':{'a':, 'r':_r, 's':((,), (,)), 'd':(,), 'y':()},
 car_r = (0.1,0.3)
 car_s = ((int(x_res/16),int(x_res/4)),(int(y_res/4),y_res))
 car_y = (0,y_res/16)
-car = {'car':{'left':{'a':5, 'r':car_r, 's':((int(x_res/8), int(x_res/6)), (2.0,4.0)), 'd':(1,10), 'y':car_y},
+car = {'car':{'left':{'a':1, 'r':car_r, 's':((int(x_res/8), int(x_res/6)), (2.0,4.0)), 'd':(1,10), 'y':car_y},
        'front':{'a':5, 'r':car_r, 's':((int(x_res/32),int(x_res/8)), (0.5,2.0)), 'd':(1,120), 'y':car_y},
-       'right':{'a':5, 'r':car_r, 's':((int(x_res/8),int(x_res/6)), (2.0,4.0)), 'd':(1,5), 'y':car_y},
+       'right':{'a':1, 'r':car_r, 's':((int(x_res/8),int(x_res/6)), (2.0,4.0)), 'd':(1,5), 'y':car_y},
        'back':{'a':5, 'r':car_r, 's':((int(x_res/32),int(x_res/8)), (0.5,2.0)), 'd':(1,120), 'y':car_y}}}
 
 pedestrian_r = (0.04,0.1)
 pedestrian_y = (0,y_res/16)
-pedestrian = {'pedestrian':{'front':{'a':0, 'r':pedestrian_r, 's':((int(x_res/32),int(x_res/16)), (2,5)), 'd':(0,50), 'y':pedestrian_y},
-              'right':{'a':0, 'r':pedestrian_r, 's':((int(x_res/32),int(x_res/16)), (2,5)), 'd':(0,10), 'y':pedestrian_y}}}
+pedestrian = {'pedestrian':{'front':{'a':2, 'r':pedestrian_r, 's':((int(x_res/64),int(x_res/32)), (0.2,0.5)), 'd':(1,50), 'y':pedestrian_y},
+              'right':{'a':4, 'r':pedestrian_r, 's':((int(x_res/64),int(x_res/32)), (0.2,0.5)), 'd':(1,10), 'y':pedestrian_y}}}
 
 obstacle_y = (0,y_res/16)
-obstacle = {'obstacle':{'front':{'a':0, 'r':(0.01,0.3), 's':((int(x_res/64),int(x_res/8)), (0.5,2)), 'd':(0,120), 'y':obstacle_y}}}
+obstacle = {'obstacle':{'front':{'a':1, 'r':(0.01,0.3), 's':((int(x_res/64),int(x_res/12)), (1,2)), 'd':(1,120), 'y':obstacle_y}}}
 
 things.update(car)
 things.update(pedestrian)
@@ -106,14 +108,11 @@ windows.append({'x':(x_unit)*3, 'y':0, 'width':x_unit, 'height':y_res, 'sensors'
 """
 Will be used to calculate the strength of return signal
 """
-#@profile
+
 def pulse_s(x, y):
     #print x,y
     point = map[x][y]
-    if point['d'] == 0:
-        x = int(max_distance)
-    else:
-        x = point['d']
+    x = point['d']
     # This causes the lag, because the less there is snow, the longer this loop will continue before stopping
     for i in range(x):
         if (random.random()<snow_p):
@@ -128,7 +127,7 @@ def pulse_s(x, y):
 ,x_limit,y_limit
 Adds an thing to specific place
 """
-#@profile
+
 def add_thing(x,y,width,height,distance,reflectivity, x_min, x_max): 
 
     sys.stdout.flush()
@@ -149,24 +148,28 @@ def add_thing(x,y,width,height,distance,reflectivity, x_min, x_max):
 """
 Draws real image under, where darker = further. Top one is what lidar sees, darker = less likely true
 """
-#@profile
+
 def plot(index):
     window = windows[index]
     for i in range(int(window['width']/3)):
         for j in range(int(window['height']/3)):
             d = []
-            for k in range(3):
-                for l in range(3):
-                    #r = pulse_s(i*3+k,j*3+l)
-                    d.append(pulse_s(i*3+k+window['x'],j*3+l+window['y'])[1])
-            mean_d = np.mean(d)
-            multiplier = 1-1.0*mean_d/max_distance
+            for m in range(lidar_a):
+                for k in range(3):
+                    for l in range(3):
+                        #r = pulse_s(i*3+k,j*3+l)
+                        d.append(pulse_s(i*3+k+window['x'],j*3+l+window['y'])[1])
+            if(mean):
+                mean_d = np.mean(d)
+            else:
+                mean_d = max(d)
+            multiplier = 1-1.0*(mean_d/max_distance)
             screen.fill((int(multiplier*255), int(multiplier*255), 0),rect=((int(width_multiplier*i*3+width_multiplier*window['x']+gap*index), int(j*3+window['y']),width_multiplier*3,3)))
 
 """
 Add elements to map
 """
-#@profile
+
 def set_things(amount):
     sys.stdout.flush()
     for i in amount:
@@ -185,7 +188,7 @@ def set_things(amount):
                 distance = np.random.randint(*l['d'])
                 reflectivity = np.random.uniform(*l['r'])
                 add_thing(x, y, width, height ,distance, reflectivity, x_min, x_max)
-#@profile
+
 def plot_all():
     for i in xrange(len(windows)):
         plot(i)
@@ -197,12 +200,10 @@ pygame.display.set_caption('View')
 screen.fill(background_colour)
 
 screen.fill(background_colour)
-pygame.draw.line(screen,(100,100,100),(0,y_res),(x_res,y_res))
 for i in xrange(x_res):
     for j in xrange(y_res):
-        if (map[i][j]['d']!= 0):
-            for k in range(width_multiplier):
-                screen.set_at((int(width_multiplier*i+k), int(j+y_res+1)),(int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)) ))
+        for k in range(width_multiplier):
+            screen.set_at((int(width_multiplier*i+k), int(j+y_res+1)),(int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)) ))
 plot_all()
 f.close()
 running = True
@@ -224,9 +225,15 @@ while running:
             if event.key == pygame.K_LEFT:
                 if(snow_s>0.001):
                     snow_s-=0.001
+            if event.key == pygame.K_KP8:
+                lidar_a +=1
+            if event.key == pygame.K_KP2:
+                lidar_a -=1
+            if event.key == pygame.K_SPACE:
+                mean = not mean
             snow_p = math.pi*(snow_s/2)**2*snow_a
             snow_p = math.pi*(snow_s/2)**2*snow_a
-            print snow_a, snow_s
+            print snow_a, snow_s, snow_p, lidar_a, mean
             sys.stdout.flush()
             plot_all()
     pygame.display.update()
