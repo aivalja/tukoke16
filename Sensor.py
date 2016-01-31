@@ -15,8 +15,8 @@ Equation values
 """
 snow_to_water = 0.1
 
-x_res = 402*6/2
-y_res = 192/1
+x_res = int(2560/2)
+y_res = 192/2
 gap = 5
 x_unit = int(x_res/4)
 x_unit_small = int(x_res/8)
@@ -25,12 +25,12 @@ width_multiplier = 1
 lidar_a = 1
 mean = False
 selector = {'left':0,'front':x_unit,'right':2*x_unit,'back':3*x_unit}
-
-
+radar_chunks = 3
 max_distance = 120.0
+test = False
 
 background_colour = (0,0,0)
-(width, height) = ((x_res+gap*3)*width_multiplier, int(y_res*2+gap))
+(width, height) = ((x_res+gap*3)*width_multiplier, int(y_res*3+gap*2))
 pygame.init()
 clock = pygame.time.Clock()
 
@@ -64,19 +64,18 @@ name = {'left':{'a':, 'r':_r, 's':((,), (,)), 'd':(,), 'y':()},
 car_r = (0.1,0.3)
 car_s = ((int(x_res/16),int(x_res/4)),(int(y_res/4),y_res))
 car_y = (0,y_res/16)
-car = {'car':{'left':{'a':0, 'r':car_r, 's':((int(x_res/8), int(x_res/6)), (2.0,4.0)), 'd':(1,10), 'y':car_y},
-       'front':{'a':0, 'r':car_r, 's':((int(x_res/32),int(x_res/8)), (0.5,2.0)), 'd':(1,120), 'y':car_y},
-       'right':{'a':0, 'r':car_r, 's':((int(x_res/8),int(x_res/6)), (2.0,4.0)), 'd':(1,5), 'y':car_y},
-       'back':{'a':0, 'r':car_r, 's':((int(x_res/32),int(x_res/8)), (0.5,2.0)), 'd':(1,120), 'y':car_y}}}
+car = {'car':{'left':{'a':3, 'r':car_r, 's':((int(x_res/8), int(x_res/6)), (2.0,4.0)), 'd':(1,10), 'y':car_y},
+       'front':{'a':5, 'r':car_r, 's':((int(x_res/32),int(x_res/8)), (0.5,2.0)), 'd':(1,120), 'y':car_y},
+       'right':{'a':1, 'r':car_r, 's':((int(x_res/8),int(x_res/6)), (2.0,4.0)), 'd':(1,5), 'y':car_y},
+       'back':{'a':5, 'r':car_r, 's':((int(x_res/32),int(x_res/8)), (0.5,2.0)), 'd':(1,120), 'y':car_y}}}
 
 pedestrian_r = (0.04,0.1)
 pedestrian_y = (0,y_res/16)
-pedestrian = {'pedestrian':{'front':{'a':0, 'r':pedestrian_r, 's':((int(x_res/64),int(x_res/32)), (0.2,0.5)), 'd':(1,50), 'y':pedestrian_y},
-              'right':{'a':0, 'r':pedestrian_r, 's':((int(x_res/64),int(x_res/63)), (0.2,0.5)), 'd':(1,10), 'y':pedestrian_y}}}
+pedestrian = {'pedestrian':{'front':{'a':1, 'r':pedestrian_r, 's':((int(x_res/64),int(x_res/32)), (0.2,0.5)), 'd':(1,50), 'y':pedestrian_y},
+              'right':{'a':5, 'r':pedestrian_r, 's':((int(x_res/64),int(x_res/32)), (0.2,0.5)), 'd':(1,10), 'y':pedestrian_y}}}
 
 obstacle_y = (0,y_res/16)
-obstacle = {'obstacle':{'front':{'a':0, 'r':(0.01,0.3), 's':((int(x_res/64),int(x_res/12)), (1,2)), 'd':(1,120), 'y':obstacle_y}}}
-
+obstacle = {'obstacle':{'front':{'a':1, 'r':(0.01,0.3), 's':((int(x_res/64),int(x_res/12)), (1,2)), 'd':(1,120), 'y':obstacle_y}}}
 
 
 things.update(car)
@@ -97,15 +96,22 @@ sys.stdout.flush()
 
 """
 Contains locations and ranges of all windows, 
-format {'x':int, 'y':int, 'width':int, 'height':int, 'sensors':[boolean(lidar), boolean(radar), boolean(infrared)], 'image':boolean}
+format {'x':int, 'y':int, 'width':int, 'height':int, 'sensors':[boolean(lidar), boolean(radar), boolean(infrared)], 'image':boolean, 'gap':(x,y)}
 """
 windows = []
 
-windows.append({'x':0, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False})
-windows.append({'x':x_unit, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False})
-windows.append({'x':(x_unit)*2, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False})
-windows.append({'x':(x_unit)*3, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False})
-
+windows.append({'x':0, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False, 'gap':(gap*0,gap*0)})
+windows.append({'x':x_unit, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False, 'gap':(gap*1,gap*0)})
+windows.append({'x':(x_unit)*2, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False, 'gap':(gap*2,gap*0)})
+windows.append({'x':(x_unit)*3, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False, 'gap':(gap*3,gap*0)})
+windows.append({'x':0, 'y':y_res, 'width':x_unit, 'height':y_res, 'sensors':[False, True, False], 'image':False, 'gap':(gap*0,gap*1)})
+windows.append({'x':x_unit, 'y':y_res, 'width':x_unit, 'height':y_res, 'sensors':[False, True, False], 'image':False, 'gap':(gap*1,gap*1)})
+windows.append({'x':(x_unit)*2, 'y':y_res, 'width':x_unit, 'height':y_res, 'sensors':[False, True, False], 'image':False, 'gap':(gap*2,gap*1)})
+windows.append({'x':(x_unit)*3, 'y':y_res, 'width':x_unit, 'height':y_res, 'sensors':[False, True, False], 'image':False, 'gap':(gap*3,gap*1)})
+windows.append({'x':0, 'y':y_res*2, 'width':x_unit, 'height':y_res, 'sensors':[False, False, False], 'image':True, 'gap':(gap*0,gap*2)})
+windows.append({'x':x_unit, 'y':y_res*2, 'width':x_unit, 'height':y_res, 'sensors':[False, False, False], 'image':True, 'gap':(gap*1,gap*2)})
+windows.append({'x':(x_unit)*2, 'y':y_res*2, 'width':x_unit, 'height':y_res, 'sensors':[False, False, False], 'image':True, 'gap':(gap*2,gap*2)})
+windows.append({'x':(x_unit)*3, 'y':y_res*2, 'width':x_unit, 'height':y_res, 'sensors':[False, False, False], 'image':True, 'gap':(gap*3,gap*2)})
 
 """
 Will be used to calculate the strength of return signal
@@ -134,8 +140,8 @@ Adds an thing to specific place
 """
 
 def add_thing(x,y,width,height,distance,reflectivity, x_min, x_max): 
-    print x,y,width,height,distance,reflectivity,x_min,x_max
-    sys.stdout.flush()
+    #print x,y,width,height,distance,reflectivity,x_min,x_max
+    #sys.stdout.flush()
     for i in range(width):
         for j in range(height):
             try:
@@ -153,24 +159,46 @@ def add_thing(x,y,width,height,distance,reflectivity, x_min, x_max):
 """
 Draws real image under, where darker = further. Top one is what lidar sees, darker = less likely true
 """
-
-def plot(index):
+def plot(index, sensors):
     window = windows[index]
-    for i in range(int(window['width']/3)):
-        for j in range(int(window['height']/3)):
-            d = []
-            for m in range(lidar_a):
-                for k in range(3):
-                    for l in range(3):
-                        #r = pulse_s(i*3+k,j*3+l)
-                        d.append(pulse_s(i*3+k+window['x'],j*3+l+window['y'])[1])
-            if(mean):
-                mean_d = np.mean(d)
-            else:
-                mean_d = max(d)
-            multiplier = 1-1.0*(mean_d/max_distance)
-            screen.fill((int(multiplier*255), int(multiplier*255), 0),rect=((int(width_multiplier*i*3+width_multiplier*window['x']+gap*index), int(j*3+window['y']),width_multiplier*3,3)))
-
+    scale = int(window['width']/radar_chunks)
+    if sensors[0]:
+        for i in range(int(window['width']/3)):
+            for j in range(int(window['height']/3)):
+                d = []
+                for m in range(lidar_a):
+                    for k in range(3):
+                        for l in range(3):
+                            #r = pulse_s(i*3+k,j*3+l)
+                            d.append(pulse_s(i*3+k+window['x'],j*3+l)[1])
+                if(mean):
+                    mean_d = np.mean(d)
+                else:
+                    mean_d = max(d)
+                multiplier = 1-1.0*(mean_d/max_distance)
+                screen.fill((int(multiplier*255), int(multiplier*255), 0),rect=((int(width_multiplier*i*3+width_multiplier*window['x']+window['gap'][0]), int(j*3+window['y']+window['gap'][1]),width_multiplier*3,3)))
+    if sensors[1]:
+        try:
+            for i in range(radar_chunks):
+                d = max_distance
+                for j in range(int(window['width']/3)):
+                    for k in range(window['height']):
+                        d_t = map[scale*i+j+window['x']][k]['d']
+                        if (d_t<d):
+                            d = d_t
+                multiplier = 1-1.0*(d/max_distance)
+                screen.fill((int(multiplier*255), int(multiplier*255), 0),rect=((int(width_multiplier*i*scale+width_multiplier*window['x']+window['gap'][0]), int(window['y']+window['gap'][1]),scale,window['y'])))
+        except:
+            print "Unexpected error:", sys.exc_info()[0], i, scale, index
+        multiplier = 1-1.0*(d/max_distance)
+        screen.fill((int(multiplier*255), int(multiplier*255), 0),rect=((int(width_multiplier*i*scale+width_multiplier*window['x']+window['gap'][0]), int(window['y']+window['gap'][1]),scale,window['y'])))
+    if window['image']:
+        for i in range(int(window['width']/3)):
+            for j in range(int(window['height']/3)):
+                for k in range(width_multiplier):
+                    screen.fill((int(255*(1-map[window['x']+i*3][j*3]['d']/max_distance)), int(255*(1-map[window['x']+i*3][j*3]['d']/max_distance)), int(255*(1-map[window['x']+i*3][j*3]['d']/max_distance))),((int(width_multiplier*i*3+width_multiplier*window['x']+window['gap'][0]), int(j*3+window['y']+window['gap'][1])),(3,3)))
+                    #screen.set_at((int(width_multiplier*i*3+width_multiplier*window['x']+window['gap'][0]), int(j*3+window['y']+window['gap'][1])),(int(255*(1-map[window['x']+i*3][j*3]['d']/max_distance)), int(255*(1-map[window['x']+i*3][j*3]['d']/max_distance)), int(255*(1-map[window['x']+i*3][j*3]['d']/max_distance)) ))
+            
 """
 Add elements to map
 """
@@ -196,7 +224,7 @@ def set_things(amount):
 
 def plot_all():
     for i in xrange(len(windows)):
-        plot(i)
+        plot(i,windows[i]['sensors'])
         
 def plot_one(x, y, width, height, distance):
     d_all = []
@@ -215,25 +243,33 @@ def plot_one(x, y, width, height, distance):
             d_all.append(d_max)
     d_all_mean = np.mean(d_all)
     print 'Range:',distance, ' Probability:',int(d_all_mean/distance*1000)/10.0
-    
+   
+
+"""
+Create a test object, whose detection rate is calculated
+"""
 t_x = int(x_unit*1.5)
 t_y = int(y_res*0.1)
 t_w = x_unit_small
 t_h = y_res/2
 t_d = 50
-add_thing(t_x, t_y, t_w, t_h, t_d, 1, 0, x_res)
+if test:
+    add_thing(t_x, t_y, t_w, t_h, t_d, 1, 0, x_res)
 set_things(things)
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('View')
 screen.fill(background_colour)
 
 screen.fill(background_colour)
+"""
 for i in xrange(x_res):
     for j in xrange(y_res):
         for k in range(width_multiplier):
-            screen.set_at((int(width_multiplier*i+k), int(j+y_res+1)),(int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)) ))
+            screen.set_at((int(width_multiplier*i+k), int(j+y_res*2+1)),(int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)) ))
+"""
 plot_all()
-plot_one(t_x, t_y, t_w, t_h, t_d)
+if test:
+    plot_one(t_x, t_y, t_w, t_h, t_d)
 sys.stdout.flush()
 f.close()
 running = True
@@ -268,7 +304,8 @@ while running:
                 sys.exit()
             snow_p = math.pi*(snow_s/2)**2*snow_a
             print '\nValues:',snow_a, snow_s, snow_p, lidar_a, mean
-            plot_one(t_x, t_y, t_w, t_h, t_d)
+            if test:
+                plot_one(t_x, t_y, t_w, t_h, t_d)
             sys.stdout.flush()
             plot_all()
     pygame.display.update()
