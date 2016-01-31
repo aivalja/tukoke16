@@ -35,7 +35,7 @@ pygame.init()
 clock = pygame.time.Clock()
 
 # How many snowflakes in cubic meter
-snow_a = 10000
+snow_a = 1000
 # Diameter of snowflake in m, usually 0.001-0.08
 snow_s = 0.01
 # probability of colliding with a snowflake per meter
@@ -64,18 +64,20 @@ name = {'left':{'a':, 'r':_r, 's':((,), (,)), 'd':(,), 'y':()},
 car_r = (0.1,0.3)
 car_s = ((int(x_res/16),int(x_res/4)),(int(y_res/4),y_res))
 car_y = (0,y_res/16)
-car = {'car':{'left':{'a':1, 'r':car_r, 's':((int(x_res/8), int(x_res/6)), (2.0,4.0)), 'd':(1,10), 'y':car_y},
-       'front':{'a':5, 'r':car_r, 's':((int(x_res/32),int(x_res/8)), (0.5,2.0)), 'd':(1,120), 'y':car_y},
-       'right':{'a':1, 'r':car_r, 's':((int(x_res/8),int(x_res/6)), (2.0,4.0)), 'd':(1,5), 'y':car_y},
-       'back':{'a':5, 'r':car_r, 's':((int(x_res/32),int(x_res/8)), (0.5,2.0)), 'd':(1,120), 'y':car_y}}}
+car = {'car':{'left':{'a':0, 'r':car_r, 's':((int(x_res/8), int(x_res/6)), (2.0,4.0)), 'd':(1,10), 'y':car_y},
+       'front':{'a':0, 'r':car_r, 's':((int(x_res/32),int(x_res/8)), (0.5,2.0)), 'd':(1,120), 'y':car_y},
+       'right':{'a':0, 'r':car_r, 's':((int(x_res/8),int(x_res/6)), (2.0,4.0)), 'd':(1,5), 'y':car_y},
+       'back':{'a':0, 'r':car_r, 's':((int(x_res/32),int(x_res/8)), (0.5,2.0)), 'd':(1,120), 'y':car_y}}}
 
 pedestrian_r = (0.04,0.1)
 pedestrian_y = (0,y_res/16)
-pedestrian = {'pedestrian':{'front':{'a':2, 'r':pedestrian_r, 's':((int(x_res/64),int(x_res/32)), (0.2,0.5)), 'd':(1,50), 'y':pedestrian_y},
-              'right':{'a':4, 'r':pedestrian_r, 's':((int(x_res/64),int(x_res/32)), (0.2,0.5)), 'd':(1,10), 'y':pedestrian_y}}}
+pedestrian = {'pedestrian':{'front':{'a':0, 'r':pedestrian_r, 's':((int(x_res/64),int(x_res/32)), (0.2,0.5)), 'd':(1,50), 'y':pedestrian_y},
+              'right':{'a':0, 'r':pedestrian_r, 's':((int(x_res/64),int(x_res/63)), (0.2,0.5)), 'd':(1,10), 'y':pedestrian_y}}}
 
 obstacle_y = (0,y_res/16)
-obstacle = {'obstacle':{'front':{'a':1, 'r':(0.01,0.3), 's':((int(x_res/64),int(x_res/12)), (1,2)), 'd':(1,120), 'y':obstacle_y}}}
+obstacle = {'obstacle':{'front':{'a':0, 'r':(0.01,0.3), 's':((int(x_res/64),int(x_res/12)), (1,2)), 'd':(1,120), 'y':obstacle_y}}}
+
+
 
 things.update(car)
 things.update(pedestrian)
@@ -129,7 +131,7 @@ Adds an thing to specific place
 """
 
 def add_thing(x,y,width,height,distance,reflectivity, x_min, x_max): 
-
+    print x,y,width,height,distance,reflectivity,x_min,x_max
     sys.stdout.flush()
     for i in range(width):
         for j in range(height):
@@ -193,7 +195,30 @@ def plot_all():
     for i in xrange(len(windows)):
         plot(i)
         
-
+def plot_one(x, y, width, height, distance):
+    d_all = []
+    for i in range(int(width/3)):
+        for j in range(int(height/3)):
+            d = []
+            for k in range(lidar_a):
+                for l in range(3):
+                    for m in range(3):
+                        d.append(pulse_s(i*3+l+x,j*3+m+y)[1])
+            d_max = max(d)
+            if(mean):
+                d_max = np.mean(d)
+            else:
+                d_max = max(d)
+            d_all.append(d_max)
+    d_all_mean = np.mean(d_all)
+    print 'Probability:',int(d_all_mean/distance*1000)/10.0
+    
+t_x = int(x_unit*1.5)
+t_y = int(y_res*0.1)
+t_w = x_unit_small
+t_h = y_res/2
+t_d = 50
+add_thing(t_x, t_y, t_w, t_h, t_d, 1, 0, x_res)
 set_things(things)
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('View')
@@ -205,6 +230,8 @@ for i in xrange(x_res):
         for k in range(width_multiplier):
             screen.set_at((int(width_multiplier*i+k), int(j+y_res+1)),(int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)) ))
 plot_all()
+plot_one(t_x, t_y, t_w, t_h, t_d)
+sys.stdout.flush()
 f.close()
 running = True
 
@@ -231,9 +258,14 @@ while running:
                 lidar_a -=1
             if event.key == pygame.K_SPACE:
                 mean = not mean
+            if event.key == pygame.K_ESCAPE:
+                running = False
+                pygame.display.quit()
+                pygame.quit()
+                sys.exit()
             snow_p = math.pi*(snow_s/2)**2*snow_a
-            snow_p = math.pi*(snow_s/2)**2*snow_a
-            print snow_a, snow_s, snow_p, lidar_a, mean
+            print '\nValues:',snow_a, snow_s, snow_p, lidar_a, mean
+            plot_one(t_x, t_y, t_w, t_h, t_d)
             sys.stdout.flush()
             plot_all()
     pygame.display.update()
