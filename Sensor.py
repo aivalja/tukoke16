@@ -16,7 +16,7 @@ Equation values
 snow_to_water = 0.1
 
 x_res = 402*6/2
-y_res = 192/2
+y_res = 192/1
 gap = 5
 x_unit = int(x_res/4)
 x_unit_small = int(x_res/8)
@@ -118,7 +118,10 @@ def pulse_s(x, y):
     # This causes the lag, because the less there is snow, the longer this loop will continue before stopping
     for i in range(x):
         if (random.random()<snow_p):
-            return (1,i)
+            if (random.random()<(1-snow_p)**i):
+                return (1,i)
+            else:
+                return (0,1)
     # calculate strength of return signal (0-1)
     if (point['d']!=0 and point['r']!=0):
         return (1,point['d'])
@@ -211,7 +214,7 @@ def plot_one(x, y, width, height, distance):
                 d_max = max(d)
             d_all.append(d_max)
     d_all_mean = np.mean(d_all)
-    print 'Probability:',int(d_all_mean/distance*1000)/10.0
+    print 'Range:',distance, ' Probability:',int(d_all_mean/distance*1000)/10.0
     
 t_x = int(x_unit*1.5)
 t_y = int(y_res*0.1)
