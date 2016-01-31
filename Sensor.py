@@ -27,7 +27,12 @@ mean = False
 selector = {'left':0,'front':x_unit,'right':2*x_unit,'back':3*x_unit}
 radar_chunks = 3
 max_distance = 120.0
-test = False
+test = True
+no_rnd_objects = True
+
+RED = 255
+GREEN = 255
+BLUE = 0
 
 background_colour = (0,0,0)
 (width, height) = ((x_res+gap*3)*width_multiplier, int(y_res*3+gap*2))
@@ -176,7 +181,7 @@ def plot(index, sensors):
                 else:
                     mean_d = max(d)
                 multiplier = 1-1.0*(mean_d/max_distance)
-                screen.fill((int(multiplier*255), int(multiplier*255), 0),rect=((int(width_multiplier*i*3+width_multiplier*window['x']+window['gap'][0]), int(j*3+window['y']+window['gap'][1]),width_multiplier*3,3)))
+                screen.fill((int(multiplier*RED), int(multiplier*GREEN), int(multiplier*BLUE)),rect=((int(width_multiplier*i*3+width_multiplier*window['x']+window['gap'][0]), int(j*3+window['y']+window['gap'][1]),width_multiplier*3,3)))
     if sensors[1]:
         try:
             for i in range(radar_chunks):
@@ -187,11 +192,11 @@ def plot(index, sensors):
                         if (d_t<d):
                             d = d_t
                 multiplier = 1-1.0*(d/max_distance)
-                screen.fill((int(multiplier*255), int(multiplier*255), 0),rect=((int(width_multiplier*i*scale+width_multiplier*window['x']+window['gap'][0]), int(window['y']+window['gap'][1]),scale,window['y'])))
+                screen.fill((int(multiplier*RED), int(multiplier*GREEN), int(multiplier*BLUE)),rect=((int(width_multiplier*i*scale+width_multiplier*window['x']+window['gap'][0]), int(window['y']+window['gap'][1]),scale,window['y'])))
         except:
             print "Unexpected error:", sys.exc_info()[0], i, scale, index
         multiplier = 1-1.0*(d/max_distance)
-        screen.fill((int(multiplier*255), int(multiplier*255), 0),rect=((int(width_multiplier*i*scale+width_multiplier*window['x']+window['gap'][0]), int(window['y']+window['gap'][1]),scale,window['y'])))
+        screen.fill((int(multiplier*RED), int(multiplier*GREEN), int(multiplier*BLUE)),rect=((int(width_multiplier*i*scale+width_multiplier*window['x']+window['gap'][0]), int(window['y']+window['gap'][1]),scale,window['y'])))
     if window['image']:
         for i in range(int(window['width']/3)):
             for j in range(int(window['height']/3)):
@@ -220,7 +225,8 @@ def set_things(amount):
                 y = int(y_res-np.random.uniform(*l['y'])-height)
                 distance = np.random.randint(*l['d'])
                 reflectivity = np.random.uniform(*l['r'])
-                add_thing(x, y, width, height ,distance, reflectivity, x_min, x_max)
+                if not no_rnd_objects:
+                    add_thing(x, y, width, height ,distance, reflectivity, x_min, x_max)
 
 def plot_all():
     for i in xrange(len(windows)):
