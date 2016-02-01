@@ -15,8 +15,8 @@ Equation values
 """
 snow_to_water = 0.1
 
-x_res = int(2560/2)
-y_res = 192/2
+x_res = int(2560/8)
+y_res = 192/8
 gap = 5
 x_unit = int(x_res/4)
 x_unit_small = int(x_res/8)
@@ -27,8 +27,19 @@ mean = False
 selector = {'left':0,'front':x_unit,'right':2*x_unit,'back':3*x_unit}
 radar_chunks = 3
 max_distance = 120.0
-test = True
+test_obj = True
+test = False
 no_rnd_objects = True
+
+p_0 = 0.01
+p_1 = 0.8
+p_d = 0.01
+d_0 = 5
+d_1 = 120
+d_d = 5
+l_0 = 1
+l_1 = 10
+iterations = 10
 
 RED = 255
 GREEN = 255
@@ -87,16 +98,14 @@ things.update(car)
 things.update(pedestrian)
 things.update(obstacle)
 
-
+open('output.txt', 'w').close()
 f = open('output.txt','w')
-json.dump(things,f)
-f.close
+
 
 """
 Create map that is the "real image"
 """
 map = [[{'r':0,'d':int(max_distance)} for j in xrange(y_res)] for i in xrange(x_res)]
-print 'map:' , len(map) , '*' , len(map[0])
 sys.stdout.flush()
 
 """
@@ -155,7 +164,8 @@ def add_thing(x,y,width,height,distance,reflectivity, x_min, x_max):
                         point['d'] = distance
                         point['r'] = reflectivity
                 else:
-                    print 'out of range:',i, x_min, x_max
+                    pass
+                    #print 'out of range:',i, x_min, x_max
             except:
                 #print "Out of range"
                 pass
@@ -232,7 +242,7 @@ def plot_all():
         plot(i,windows[i]['sensors'])
         i -= 1
 def plot_one(x, y, width, height, distance):
-    print distance
+    #print distance
     d_all = []
     for i in range(int(width/3)):
         for j in range(int(height/3)):
@@ -242,18 +252,98 @@ def plot_one(x, y, width, height, distance):
                     for m in range(3):
                         d.append(pulse_s(i*3+l+x,j*3+m+y)[1])
             d_max = max(d)
+            #print 'max:',d_max            
             d_all.append(d_max)
+    #print d_all
     d_all_mean = np.mean(d_all)
+    prob = int(d_all_mean/distance*1000)/10.0
+    #print 'Range:',distance, ' Probability:',prob
+    return (distance,prob)
+
+def benchmark(p_0, p_1, p_d, d_0, d_1, d_d, l_0, l_1):
+    p_l = []
+    d_l = []
+    l_l = []
+    r_l = []
+    completion = 0
+    total = (l_1-l_0+1)+(((p_1-p_0)/p_d)+1)+(((d_1-d_0)/d_d)+1)
+    print total
+    for i in range(l_1-l_0+1):
+        print i
+        global lidar_a
+        lidar_a = l_0 + i
+        f.write(str(lidar_a)+'-------------------------------\n')
+        
+        for j in range(int((p_1-p_0)/p_d)+2):
+            #print 'ded'+ str(i)
+            global snow_p
+            snow_p = (p_0 + j*p_d)
+            tmp_r_l = []
+            for k in range(int((d_1-d_0)/d_d)+1):
+                t_d = d_0 + d_d*k
+                global map
+                map = [[{'r':0,'d':int(max_distance)} for m in xrange(y_res)] for n in xrange(x_res)]
+                add_thing(t_x, t_y, t_w, t_h, t_d, 1, 0, x_res)
+                values = []
+                for l in range(iterations):
+                    values.append(plot_one(t_x, t_y, t_w, t_h, t_d)[1])
+                result = plot_one(t_x, t_y, t_w, t_h, t_d)
+                values_mean = np.mean(values)
+                r_l.append(values_mean)
+                tmp_r_l.append(values_mean)
+                d_l.append(t_d)
+                #print (1.0*(l_1-l_0+1)*i*(((p_1-p_0)/p_d)+2)*j*(((d_1-d_0)/d_d)+1)*k)
+                completion = (1.0*(i+j+k))/total*100.0
+                
+                #sys.stdout.write('\r'+str(int(completion))+'%')
+                #sys.stdout.flush()
+            #f.write(str(snow_p)+'\n')
+            for item in tmp_r_l:
+                f.write("%s;" % item)
+            f.write('\n')
+            p_l.append(snow_p)
+        f.write(str(lidar_a)+'-------------------------------\n')
+        l_l.append(lidar_a)
+    f.write('Lidar:\n')
+    for item in l_l:
+        f.write("%s;" % item)
+    f.write('\n')
+    for item1 in range(len(p_l)):
+        f.write("%s;" % p_l[item1])
+    f.write('\n')
+    for item2 in range(len(d_l)):
+        f.write("%s;" % d_l[item2])
+    f.write('\n')
+    """  
+    for item3 in range(len(r_l)):
+        f.write("%s;" % r_l[item3])
+        f.write('\n')
+        """
+    """   
+    f.write('\n')
+    f.write('Snow probability:\n')
+    for item in p_l:
+        f.write("%s;" % item)
+    f.write('\n')
+    f.write('distance:\n')
+    for item in d_l:
+        f.write("%s;" % item)
     
-    print 'Range:',distance, ' Probability:',int(d_all_mean/distance*1000)/10.0
-   
+    f.write('\n')
+    f.write('accuracy:\n')
+    for item in r_l:
+        f.write("%s;" % item)
+    f.write('\n')
+                """
+                    
+                
 
 t_x = int(x_unit*1.5)
 t_y = int(y_res*0.1)
 t_w = x_unit_small
 t_h = y_res/2
 t_d = 50
-if test:
+if test_obj:
     add_thing(t_x, t_y, t_w, t_h, t_d, 1, 0, x_res)
 set_things(things)
 screen = pygame.display.set_mode((width, height))
@@ -269,11 +359,10 @@ for i in xrange(x_res):
 """
 plot_all()
 color = screen.get_at((t_x,t_y))
-print color
-if test:
+if test_obj:
     plot_one(t_x, t_y, t_w, t_h, t_d)
 sys.stdout.flush()
-f.close()
+benchmark(p_0, p_1, p_d, d_0, d_1, d_d, l_0, l_1)
 running = True
 
 while running:
@@ -297,24 +386,32 @@ while running:
                 lidar_a +=1
             if event.key == pygame.K_KP2:
                 lidar_a -=1
+            if event.key == pygame.K_KP7:
+                t_d +=10
+                add_thing(t_x, t_y, t_w, t_h, t_d, 1, 0, x_res)
+            if event.key == pygame.K_KP1:
+                t_d -=10
+                add_thing(t_x, t_y, t_w, t_h, t_d, 1, 0, x_res)
             if event.key == pygame.K_SPACE:
                 mean = not mean
             if event.key == pygame.K_ESCAPE:
                 running = False
                 pygame.display.quit()
                 pygame.quit()
+                f.close()
                 sys.exit()
             snow_p = math.pi*(snow_s/2)**2*snow_a
             print '\nValues:',snow_a, snow_s, snow_p, lidar_a, mean
-            if test:
+            if test_obj:
                 plot_one(t_x, t_y, t_w, t_h, t_d)
             sys.stdout.flush()
             plot_all()
             color = screen.get_at((t_x,t_y+y_res))[0]*1.0/RED*max_distance
-            print color
+            #print color
     pygame.display.update()
     clock.tick(60)
 pygame.display.quit()
 pygame.quit()
+f.close()
 sys.exit()
     
