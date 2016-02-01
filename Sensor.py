@@ -34,7 +34,7 @@ RED = 255
 GREEN = 255
 BLUE = 0
 
-background_colour = (0,0,0)
+background_colour = (40,40,40)
 (width, height) = ((x_res+gap*3)*width_multiplier, int(y_res*3+gap*2))
 pygame.init()
 clock = pygame.time.Clock()
@@ -101,18 +101,18 @@ sys.stdout.flush()
 
 """
 Contains locations and ranges of all windows, 
-format {'x':int, 'y':int, 'width':int, 'height':int, 'sensors':[boolean(lidar), boolean(radar), boolean(infrared)], 'image':boolean, 'gap':(x,y)}
+format {'x':int, 'y':int, 'width':int, 'height':int, 'sensors':[boolean(lidar), boolean(radar), boolean(infrared)], 'image':boolean, 'gap':(x,y), 'clean':Boolean}
 """
 windows = []
 
-windows.append({'x':0, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False, 'gap':(gap*0,gap*0)})
-windows.append({'x':x_unit, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False, 'gap':(gap*1,gap*0)})
-windows.append({'x':(x_unit)*2, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False, 'gap':(gap*2,gap*0)})
-windows.append({'x':(x_unit)*3, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False, 'gap':(gap*3,gap*0)})
-windows.append({'x':0, 'y':y_res, 'width':x_unit, 'height':y_res, 'sensors':[False, True, False], 'image':False, 'gap':(gap*0,gap*1)})
-windows.append({'x':x_unit, 'y':y_res, 'width':x_unit, 'height':y_res, 'sensors':[False, True, False], 'image':False, 'gap':(gap*1,gap*1)})
-windows.append({'x':(x_unit)*2, 'y':y_res, 'width':x_unit, 'height':y_res, 'sensors':[False, True, False], 'image':False, 'gap':(gap*2,gap*1)})
-windows.append({'x':(x_unit)*3, 'y':y_res, 'width':x_unit, 'height':y_res, 'sensors':[False, True, False], 'image':False, 'gap':(gap*3,gap*1)})
+windows.append({'x':0, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False, 'gap':(gap*0,gap*0), 'clean':True})
+windows.append({'x':x_unit, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False, 'gap':(gap*1,gap*0), 'clean':True})
+windows.append({'x':(x_unit)*2, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False, 'gap':(gap*2,gap*0), 'clean':True})
+windows.append({'x':(x_unit)*3, 'y':0, 'width':x_unit, 'height':y_res, 'sensors':[True, False, False], 'image':False, 'gap':(gap*3,gap*0), 'clean':True})
+windows.append({'x':0, 'y':y_res, 'width':x_unit, 'height':y_res, 'sensors':[True, True, False], 'image':False, 'gap':(gap*0,gap*1), 'clean':True})
+windows.append({'x':x_unit, 'y':y_res, 'width':x_unit, 'height':y_res, 'sensors':[True, True, False], 'image':False, 'gap':(gap*1,gap*1), 'clean':True})
+windows.append({'x':(x_unit)*2, 'y':y_res, 'width':x_unit, 'height':y_res, 'sensors':[True, True, False], 'image':False, 'gap':(gap*2,gap*1), 'clean':True})
+windows.append({'x':(x_unit)*3, 'y':y_res, 'width':x_unit, 'height':y_res, 'sensors':[True, True, False], 'image':False, 'gap':(gap*3,gap*1), 'clean':True})
 windows.append({'x':0, 'y':y_res*2, 'width':x_unit, 'height':y_res, 'sensors':[False, False, False], 'image':True, 'gap':(gap*0,gap*2)})
 windows.append({'x':x_unit, 'y':y_res*2, 'width':x_unit, 'height':y_res, 'sensors':[False, False, False], 'image':True, 'gap':(gap*1,gap*2)})
 windows.append({'x':(x_unit)*2, 'y':y_res*2, 'width':x_unit, 'height':y_res, 'sensors':[False, False, False], 'image':True, 'gap':(gap*2,gap*2)})
@@ -121,7 +121,6 @@ windows.append({'x':(x_unit)*3, 'y':y_res*2, 'width':x_unit, 'height':y_res, 'se
 """
 Will be used to calculate the strength of return signal
 """
-
 def pulse_s(x, y):
     #print x,y
     point = map[x][y]
@@ -140,8 +139,7 @@ def pulse_s(x, y):
         return (0, max_distance)
 
 """
-,x_limit,y_limit
-Adds an thing to specific place
+Adds a thing to specific place
 """
 
 def add_thing(x,y,width,height,distance,reflectivity, x_min, x_max): 
@@ -161,27 +159,13 @@ def add_thing(x,y,width,height,distance,reflectivity, x_min, x_max):
             except:
                 #print "Out of range"
                 pass
+            
 """
-Draws real image under, where darker = further. Top one is what lidar sees, darker = less likely true
+Draws the simulated image for each sensor type seperatly. The darker the pixel is, the futher away it is OR there was no return signal
 """
 def plot(index, sensors):
     window = windows[index]
     scale = int(window['width']/radar_chunks)
-    if sensors[0]:
-        for i in range(int(window['width']/3)):
-            for j in range(int(window['height']/3)):
-                d = []
-                for m in range(lidar_a):
-                    for k in range(3):
-                        for l in range(3):
-                            #r = pulse_s(i*3+k,j*3+l)
-                            d.append(pulse_s(i*3+k+window['x'],j*3+l)[1])
-                if(mean):
-                    mean_d = np.mean(d)
-                else:
-                    mean_d = max(d)
-                multiplier = 1-1.0*(mean_d/max_distance)
-                screen.fill((int(multiplier*RED), int(multiplier*GREEN), int(multiplier*BLUE)),rect=((int(width_multiplier*i*3+width_multiplier*window['x']+window['gap'][0]), int(j*3+window['y']+window['gap'][1]),width_multiplier*3,3)))
     if sensors[1]:
         try:
             for i in range(radar_chunks):
@@ -197,6 +181,22 @@ def plot(index, sensors):
             print "Unexpected error:", sys.exc_info()[0], i, scale, index
         multiplier = 1-1.0*(d/max_distance)
         screen.fill((int(multiplier*RED), int(multiplier*GREEN), int(multiplier*BLUE)),rect=((int(width_multiplier*i*scale+width_multiplier*window['x']+window['gap'][0]), int(window['y']+window['gap'][1]),scale,window['y'])))
+    if sensors[0]:
+        for i in range(int(window['width']/3)):
+            for j in range(int(window['height']/3)):
+                d = []
+                for m in range(lidar_a):
+                    for k in range(3):
+                        for l in range(3):
+                            #r = pulse_s(i*3+k,j*3+l)
+                            d.append(pulse_s(i*3+k+window['x'],j*3+l)[1])
+                if(mean):
+                    mean_d = np.mean(d)
+                else:
+                    mean_d = max(d)
+                multiplier = 1-1.0*(mean_d/max_distance)
+                
+                screen.fill((int(multiplier*RED), int(multiplier*GREEN), int(multiplier*BLUE)),rect=((int(width_multiplier*i*3+width_multiplier*window['x']+window['gap'][0]), int(j*3+window['y']+window['gap'][1]),width_multiplier*3,3)))
     if window['image']:
         for i in range(int(window['width']/3)):
             for j in range(int(window['height']/3)):
@@ -207,7 +207,6 @@ def plot(index, sensors):
 """
 Add elements to map
 """
-
 def set_things(amount):
     sys.stdout.flush()
     for i in amount:
@@ -229,10 +228,12 @@ def set_things(amount):
                     add_thing(x, y, width, height ,distance, reflectivity, x_min, x_max)
 
 def plot_all():
-    for i in xrange(len(windows)):
+    i = len(windows)-1
+    while i>=0:
         plot(i,windows[i]['sensors'])
-        
+        i -= 1
 def plot_one(x, y, width, height, distance):
+    print distance
     d_all = []
     for i in range(int(width/3)):
         for j in range(int(height/3)):
@@ -242,12 +243,9 @@ def plot_one(x, y, width, height, distance):
                     for m in range(3):
                         d.append(pulse_s(i*3+l+x,j*3+m+y)[1])
             d_max = max(d)
-            if(mean):
-                d_max = np.mean(d)
-            else:
-                d_max = max(d)
             d_all.append(d_max)
     d_all_mean = np.mean(d_all)
+    
     print 'Range:',distance, ' Probability:',int(d_all_mean/distance*1000)/10.0
    
 
@@ -274,6 +272,8 @@ for i in xrange(x_res):
             screen.set_at((int(width_multiplier*i+k), int(j+y_res*2+1)),(int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)), int(255*(1-map[i][j]['d']/max_distance)) ))
 """
 plot_all()
+color = screen.get_at((t_x,t_y))
+print color
 if test:
     plot_one(t_x, t_y, t_w, t_h, t_d)
 sys.stdout.flush()
@@ -314,6 +314,8 @@ while running:
                 plot_one(t_x, t_y, t_w, t_h, t_d)
             sys.stdout.flush()
             plot_all()
+            color = screen.get_at((t_x,t_y+y_res))[0]*1.0/RED*max_distance
+            print color
     pygame.display.update()
     clock.tick(60)
 pygame.display.quit()
