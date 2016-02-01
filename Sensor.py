@@ -166,6 +166,21 @@ Draws the simulated image for each sensor type seperatly. The darker the pixel i
 def plot(index, sensors):
     window = windows[index]
     scale = int(window['width']/radar_chunks)
+    if sensors[0]:
+        for i in range(int(window['width']/3)):
+            for j in range(int(window['height']/3)):
+                d = []
+                for m in range(lidar_a):
+                    for k in range(3):
+                        for l in range(3):
+                            #r = pulse_s(i*3+k,j*3+l)
+                            d.append(pulse_s(i*3+k+window['x'],j*3+l)[1])
+                if(mean):
+                    mean_d = np.mean(d)
+                else:
+                    mean_d = max(d)
+                multiplier = 1-1.0*(mean_d/max_distance)
+                screen.fill((int(multiplier*RED), int(multiplier*GREEN), int(multiplier*BLUE)),rect=((int(width_multiplier*i*3+width_multiplier*window['x']+window['gap'][0]), int(j*3+window['y']+window['gap'][1]),width_multiplier*3,3)))
     if sensors[1]:
         try:
             for i in range(radar_chunks):
@@ -181,22 +196,6 @@ def plot(index, sensors):
             print "Unexpected error:", sys.exc_info()[0], i, scale, index
         multiplier = 1-1.0*(d/max_distance)
         screen.fill((int(multiplier*RED), int(multiplier*GREEN), int(multiplier*BLUE)),rect=((int(width_multiplier*i*scale+width_multiplier*window['x']+window['gap'][0]), int(window['y']+window['gap'][1]),scale,window['y'])))
-    if sensors[0]:
-        for i in range(int(window['width']/3)):
-            for j in range(int(window['height']/3)):
-                d = []
-                for m in range(lidar_a):
-                    for k in range(3):
-                        for l in range(3):
-                            #r = pulse_s(i*3+k,j*3+l)
-                            d.append(pulse_s(i*3+k+window['x'],j*3+l)[1])
-                if(mean):
-                    mean_d = np.mean(d)
-                else:
-                    mean_d = max(d)
-                multiplier = 1-1.0*(mean_d/max_distance)
-                
-                screen.fill((int(multiplier*RED), int(multiplier*GREEN), int(multiplier*BLUE)),rect=((int(width_multiplier*i*3+width_multiplier*window['x']+window['gap'][0]), int(j*3+window['y']+window['gap'][1]),width_multiplier*3,3)))
     if window['image']:
         for i in range(int(window['width']/3)):
             for j in range(int(window['height']/3)):
@@ -249,9 +248,6 @@ def plot_one(x, y, width, height, distance):
     print 'Range:',distance, ' Probability:',int(d_all_mean/distance*1000)/10.0
    
 
-"""
-Create a test object, whose detection rate is calculated
-"""
 t_x = int(x_unit*1.5)
 t_y = int(y_res*0.1)
 t_w = x_unit_small
